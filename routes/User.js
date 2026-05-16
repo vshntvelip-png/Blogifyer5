@@ -1,125 +1,161 @@
 const { Router } = require("express");
 const User = require("../models/user");
 const { sendOTP, sendPasswordResetLink } = require("../services/email");
-const { randomBytes, createHmac } = require("crypto");
+
 const router = Router();
 
-// Generate OTP
-const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
-
-// Generate Reset Token
-const generateResetToken = () => randomBytes(32).toString("hex");
-
-// GET: Signin page
+// GET Routes
 router.get("/signin", (req, res) => res.render("signin"));
-
-// GET: Signup page
 router.get("/signup", (req, res) => res.render("signup"));
 
-// POST: Send OTP for signup
+// ====================== SIGNUP WITH OTP ======================
 router.post("/send-otp", async (req, res) => {
-    const { email, fullName, password } = req.body;
+    const { fullName, email, password } = req.body;
+
+    if (!fullName || !email || !password) {
+        return res.status(400).json({ success: false, message: "All fields are required" });
+    }
 
     try {
-        // Check if email already exists
         const existingUser = await User.findOne({ email });
         if (existingUser && existingUser.isVerified) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Email already registered. Please sign in instead." 
-            });
+            return res.status(400).json({ success: false, message: "Email already registered" });
         }
 
-        // Generate OTP
-        const otp = generateOTP();
-        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Save or update user with OTP
         await User.findOneAndUpdate(
             { email },
-            { 
-                email, 
-                fullName, 
+            {
+                fullName,
+                email,
                 password,
-                otp, 
-                otpExpiry,
-                isVerified: false 
+                otp,
+                otpExpiry: Date.now() + 10 * 60 * 1000, // 10 min
+                isVerified: false
             },
             { upsert: true, new: true }
         );
 
-        // Send OTP via email
         const emailSent = await sendOTP(email, otp);
         if (!emailSent) {
-            return res.status(500).json({ 
-                success: false, 
-                message: "Failed to send OTP. Please try again." 
-            });
+            return res.status(500).json({ success: false, message: "Failed to send OTP" });
         }
 
-        return res.json({ 
-            success: true, 
-            message: "OTP sent to your email. Please verify within 10 minutes.",
-            email: email
-        });
+        res.json({ success: true, message: "OTP sent to your email" });
     } catch (error) {
         console.error("Send OTP Error:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: "Error sending OTP. Please try again." 
-        });
+        res.status(500).json({ success: false, message: "Server error" });
     }
 });
 
-// POST: Verify OTP
-router.post("/verify-otp", async (req, res) => {
+router.post("/signup", async (req, res) => {
     const { email, otp } = req.body;
 
     try {
         const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "User not found. Please sign up first." 
-            });
+        if (!user) return res.status(400).json({ success: false, message: "User not found" });
+
+        if (user.isVerified) return res.status(400).json({ success: false, message: "User already verified" });
+
+        if (Date.now() > user.otpExpiry) {
+            return res.status(400).json({ success: false, message: "OTP has expired" });
         }
 
-        // Check OTP expiry
-        if (new Date() > user.otpExpiry) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "OTP expired. Please request a new one." 
-            });
-        }
-
-        // Check OTP
         if (user.otp !== otp) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Invalid OTP. Please try again." 
-            });
+            return res.status(400).json({ success: false, message: "Invalid OTP" });
         }
 
-        // Mark user as verified and clear OTP
         user.isVerified = true;
         user.otp = undefined;
         user.otpExpiry = undefined;
         await user.save();
 
-        return res.json({ 
-            success: true, 
-            message: "Email verified successfully! You can now sign in."
-        });
+        res.json({ success: true, message: "Account created successfully!" });
     } catch (error) {
-        console.error("Verify OTP Error:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: "Error verifying OTP. Please try again." 
-        });
+        console.error("Signup Error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
     }
 });
 
-// POST: Signin
+// ====================== FORGOT PASSWORD ======================
+router.post("/forgot-password", async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(400).json({ success: false, message: "No account found with this email" });
+        }
+
+        const resetToken = user.generateResetToken();
+        await user.save();
+
+        const emailSent = await sendPasswordResetLink(email, resetToken);
+
+        if (emailSent) {
+            res.json({ success: true, message: "Reset link sent to your email (valid for 2 minutes)" });
+        } else {
+            res.status(500).json({ success: false, message: "Failed to send reset email" });
+        }
+    } catch (error) {
+        console.error("Forgot Password Error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+});
+
+// ====================== RESET PASSWORD ======================
+router.get("/reset-password/:token", async (req, res) => {
+    const { token } = req.params;
+
+    try {
+        const user = await User.findOne({
+            resetToken: token,
+            resetTokenExpiry: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.render("reset-password", { 
+                error: "Invalid or expired reset link. Please request a new one." 
+            });
+        }
+
+        res.render("reset-password", { token, email: user.email });
+    } catch (error) {
+        res.render("reset-password", { error: "Something went wrong" });
+    }
+});
+
+router.post("/reset-password/:token", async (req, res) => {
+    const { token } = req.params;
+    const { password, confirmPassword } = req.body;
+
+    try {
+        if (password !== confirmPassword) {
+            return res.status(400).json({ success: false, message: "Passwords do not match" });
+        }
+
+        const user = await User.findOne({
+            resetToken: token,
+            resetTokenExpiry: { $gt: Date.now() }
+        });
+
+        if (!user) {
+            return res.status(400).json({ success: false, message: "Invalid or expired reset link" });
+        }
+
+        user.password = password;
+        user.resetToken = undefined;
+        user.resetTokenExpiry = undefined;
+        await user.save();
+
+        res.json({ success: true, message: "Password updated successfully!" });
+    } catch (error) {
+        console.error("Reset Password Error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+});
+
 router.post("/signin", async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -131,124 +167,6 @@ router.post("/signin", async (req, res) => {
     }
 });
 
-// GET: Forgot password page
-router.get("/forgot-password", (req, res) => res.render("forgot-password"));
-
-// POST: Send password reset link
-router.post("/send-reset-link", async (req, res) => {
-    const { email } = req.body;
-
-    try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "No account found with this email." 
-            });
-        }
-
-        // Generate reset token
-        const resetToken = generateResetToken();
-        const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-        user.resetToken = resetToken;
-        user.resetTokenExpiry = resetTokenExpiry;
-        await user.save();
-
-        // Send reset link via email
-        const emailSent = await sendPasswordResetLink(email, resetToken);
-        if (!emailSent) {
-            return res.status(500).json({ 
-                success: false, 
-                message: "Failed to send reset link. Please try again." 
-            });
-        }
-
-        return res.json({ 
-            success: true, 
-            message: "Password reset link sent to your email. Please check within 1 hour."
-        });
-    } catch (error) {
-        console.error("Send Reset Link Error:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: "Error sending reset link. Please try again." 
-        });
-    }
-});
-
-// GET: Reset password page
-router.get("/reset-password/:token", async (req, res) => {
-    try {
-        const user = await User.findOne({
-            resetToken: req.params.token,
-            resetTokenExpiry: { $gt: Date.now() }
-        });
-
-        if (!user) {
-            return res.render("reset-password", { 
-                error: "Reset link expired or invalid.",
-                token: null
-            });
-        }
-
-        return res.render("reset-password", { 
-            token: req.params.token,
-            email: user.email
-        });
-    } catch (error) {
-        console.error("Reset Password Page Error:", error);
-        return res.render("reset-password", { 
-            error: "Error loading reset page.",
-            token: null
-        });
-    }
-});
-
-// POST: Reset password
-router.post("/reset-password/:token", async (req, res) => {
-    const { password, confirmPassword } = req.body;
-
-    try {
-        if (password !== confirmPassword) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Passwords do not match." 
-            });
-        }
-
-        const user = await User.findOne({
-            resetToken: req.params.token,
-            resetTokenExpiry: { $gt: Date.now() }
-        });
-
-        if (!user) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Reset link expired or invalid." 
-            });
-        }
-
-        // Update password
-        user.password = password;
-        user.resetToken = undefined;
-        user.resetTokenExpiry = undefined;
-        await user.save();
-
-        return res.json({ 
-            success: true, 
-            message: "Password reset successfully! You can now sign in with your new password."
-        });
-    } catch (error) {
-        console.error("Reset Password Error:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: "Error resetting password. Please try again." 
-        });
-    }
-});
-
-// GET: Logout
 router.get("/logout", (req, res) => {
     return res.clearCookie("token").redirect("/");
 });
