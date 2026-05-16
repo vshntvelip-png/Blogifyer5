@@ -13,14 +13,17 @@ dotenv.config();
 
 const app = express();
 
-// Improved MongoDB Connection
+console.log("🚀 Starting server...");
+
+// MongoDB Connection with better logging
 mongoose.connect(process.env.MONGODB_URI, {
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s
+    serverSelectionTimeoutMS: 10000,
 })
-    .then(() => console.log("✅ MongoDB Connected Successfully"))
+    .then(() => {
+        console.log("✅ MongoDB Connected Successfully");
+    })
     .catch((err) => {
         console.error("❌ MongoDB Connection Failed:", err.message);
-        console.error("Please check your MONGODB_URI in Render Environment Variables");
     });
 
 // View Engine
@@ -44,7 +47,7 @@ app.get("/", async (req, res) => {
             blogs: allBlogs || []
         });
     } catch (error) {
-        console.error("Home Route Error:", error);
+        console.error("Home Route Error:", error.message);
         res.status(500).send("Internal Server Error");
     }
 });
@@ -52,9 +55,10 @@ app.get("/", async (req, res) => {
 app.use("/user", UserRoute);
 app.use("/blogs", UserBlogsRoute);
 
-// 404 Handler
 app.use((req, res) => {
     res.status(404).send("Page Not Found");
 });
+
+const PORT = process.env.PORT || 8000;
 
 module.exports = app;
