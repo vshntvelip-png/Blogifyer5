@@ -13,10 +13,15 @@ dotenv.config();
 
 const app = express();
 
-// MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log("✅ MongoDB Connected"))
-    .catch((err) => console.error("❌ MongoDB Error:", err));
+// Improved MongoDB Connection
+mongoose.connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000, // Timeout after 5s
+})
+    .then(() => console.log("✅ MongoDB Connected Successfully"))
+    .catch((err) => {
+        console.error("❌ MongoDB Connection Failed:", err.message);
+        console.error("Please check your MONGODB_URI in Render Environment Variables");
+    });
 
 // View Engine
 app.set("view engine", "ejs");
