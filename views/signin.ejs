@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <%-include("./partials/head") %>
+    <title>Sign In</title>
+</head>
+<body>
+<%-include("./partials/nave") %>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card p-4 shadow-sm" style="width: 100%; max-width: 450px;">
+        <h3 class="text-center mb-4">Welcome Back</h3>
+        
+        <form action="/user/signin" method="POST">
+            <div class="mb-3">
+                <label class="form-label">Email address</label>
+                <input type="email" name="email" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">Sign In</button>
+            <p class="text-center mt-3">Don't have an account? <a href="/user/signup">Create one</a></p>
+        </form>
+    </div>
+</div>
+
+<%-include("./partials/scripts") %>
+</body>
+</html>
