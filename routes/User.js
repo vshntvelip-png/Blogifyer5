@@ -5,21 +5,30 @@ const { creatTokenForUser } = require("../services/authentication");
 
 const router = Router();
 
-// ====================== PASSPORT GOOGLE SETUP ======================
+// ====================== GOOGLE STRATEGY ======================
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL
-}, async (accessToken, refreshToken, profile, done) => {
-    try {
-        const user = await User.findOrCreateGoogleUser(profile);
-        return done(null, user);
-    } catch (err) {
-        return done(err, null);
+const configureGoogleStrategy = () => {
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        console.warn("⚠️ Google OAuth credentials missing. Google login will not work.");
+        return;
     }
-}));
+
+    passport.use(new GoogleStrategy({
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: process.env.GOOGLE_CALLBACK_URL
+    }, async (accessToken, refreshToken, profile, done) => {
+        try {
+            const user = await User.findOrCreateGoogleUser(profile);
+            return done(null, user);
+        } catch (err) {
+            return done(err, null);
+        }
+    }));
+};
+
+configureGoogleStrategy();
 
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => {
@@ -63,7 +72,7 @@ router.get("/logout", (req, res) => {
     res.clearCookie("token").redirect("/");
 });
 
-// ====================== GOOGLE OAUTH ROUTES ======================
+// ====================== GOOGLE OAUTH ======================
 router.get("/auth/google", passport.authenticate("google", { 
     scope: ["profile", "email"] 
 }));
