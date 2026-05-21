@@ -1,76 +1,46 @@
 const { Router } = require("express");
 const Blog = require("../models/Blog");
-const cloudinaryUpload = require("../middlewares/CloudinaryUploads");
 
 const router = Router();
 
-// GET: Render add blog page (requires authentication)
-router.get("/add-new", (req, res) => {
-    if (!req.user) {
-        return res.redirect("/user/signin");
-    }
-    return res.render("addBlog", {
-        user: req.user,
-    });
-});
+// Get All Blogs - Already handled in index.js "/" route
 
-// GET: View single blog by ID
+// View Single Blog
 router.get("/:id", async (req, res) => {
     try {
-        const blog = await Blog.findById(req.params.id).populate("createdBy", "fullName email profileImageURL");
-        
-        if (!blog) {
-            return res.status(404).render("404", {
-                user: req.user,
-                message: "Blog not found"
-            });
-        }
+        const blog = await Blog.findById(req.params.id)
+            .populate("createdBy", "fullName profileImageURL");
 
-        return res.render("view", {
-            user: req.user,
-            blog: blog
+        if (!blog) return res.status(404).send("Blog Not Found");
+
+        res.render("view", { 
+            blog,
+            user: req.user 
         });
     } catch (error) {
         console.error("Error fetching blog:", error);
-        return res.status(500).render("500", {
-            user: req.user,
-            message: "Error loading blog"
-        });
+        res.status(500).send("Internal Server Error");
     }
 });
 
-// POST: Create blog with Cloudinary image (requires authentication)
-router.post("/", cloudinaryUpload.single("coverImage"), async (req, res) => {
-    const { title, body } = req.body;
-
-    // Validate user is authenticated
-    if (!req.user) {
-        return res.status(401).redirect("/user/signin");
-    }
-
-    // Validate inputs
-    if (!title || !body) {
-        return res.status(400).render("addBlog", {
-            user: req.user,
-            error: "Title and content are required"
-        });
-    }
-
+// Delete Blog (Owner Only)
+router.delete("/:id", async (req, res) => {
     try {
-        const blog = await Blog.create({
-            title,
-            body,
-            createdBy: req.user._id,
-            coverImageURL: req.file ? req.file.path : "/images/default-blog.png", // Cloudinary URL or default
-        });
+        const blog = await Blog.findById(req.params.id);
 
-        return res.redirect("/");
+        if (!blog) {
+            return res.status(404).json({ success: false, message: "Blog not found" });
+        }
+
+        if (!req.user || blog.createdBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, message: "You are not authorized to delete this blog" });
+        }
+
+        await Blog.findByIdAndDelete(req.params.id);
+        res.json({ success: true, message: "Blog deleted successfully" });
     } catch (error) {
-        console.error("Error creating blog:", error);
-        return res.status(500).render("addBlog", {
-            user: req.user,
-            error: "Failed to create blog. Please try again."
-        });
+        console.error("Delete Error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
     }
 });
 
