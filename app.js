@@ -1,38 +1,54 @@
 const path = require("path");
 const express = require("express");
 const mongoose = require("mongoose");
+const cookieParser = require("cookie-parser");
+
 const UserRoute = require("./routes/User");
 const UserBlogsRoute = require("./routes/Blog");
-const Blog = require("./models/Blog");
-const cookieParser = require("cookie-parser");
+
 const { checkForAuthenticationCookie } = require("./middlewares/authentication");
 
-const PORT = 8000;
 const app = express();
+const PORT = process.env.PORT || 8000;
 
-const localDB = "mongodb://127.0.0.1:27017/blogify5";
+// ====================== MongoDB Connection ======================
+const MONGODB_URI = process.env.MONGODB_URI;
 
-mongoose.connect(localDB)
-    .then(() => console.log(`MongoDB Connected to: ${localDB}`))
-    .catch((err) => console.error("Mongo Connection Error:", err));
+if (!MONGODB_URI) {
+    console.error("❌ MONGODB_URI is not defined in environment variables!");
+}
 
+mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 20000,
+    socketTimeoutMS: 45000,
+})
+.then(() => console.log("✅ MongoDB Connected Successfully"))
+.catch((err) => {
+    console.error("❌ MongoDB Connection Error:", err.message);
+});
+
+// ====================== View Engine & Middleware ======================
 app.set("view engine", "ejs");
 app.set("views", path.resolve("./views"));
 
 app.use(cookieParser());
-app.use(express.json()); 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Fixed: Correct root static file serving path definition
-app.use("/", express.static(path.resolve("./public")));
+// Static files
+app.use(express.static(path.resolve("./public")));
 
+// Authentication Middleware
 app.use(checkForAuthenticationCookie("token"));
+
+// ====================== Routes ======================
+app.get("/health", (req, res) => res.status(200).send("OK"));
 
 app.get("/", async (req, res) => {
     try {
-        // Fixed: Passed a proper object configuration into sort() to prevent runtime crashes
+        const Blog = require("./models/Blog");
         const allBlogs = await Blog.find({}).sort({ createdAt: -1 });
-        
+
         res.render("home", {
             user: req.user,
             blogs: allBlogs
@@ -47,5 +63,5 @@ app.use("/user", UserRoute);
 app.use("/blogs", UserBlogsRoute);
 
 app.listen(PORT, () => {
-    console.log(`Server started at http://localhost:${PORT}`);
+    console.log(`🚀 Server started at http://localhost:${PORT}`);
 });
