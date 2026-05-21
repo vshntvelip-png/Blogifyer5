@@ -3,8 +3,6 @@ const Blog = require("../models/Blog");
 
 const router = Router();
 
-// Get All Blogs - Already handled in index.js "/" route
-
 // View Single Blog
 router.get("/:id", async (req, res) => {
     try {
@@ -13,27 +11,21 @@ router.get("/:id", async (req, res) => {
 
         if (!blog) return res.status(404).send("Blog Not Found");
 
-        res.render("view", { 
-            blog,
-            user: req.user 
-        });
+        res.render("view", { blog, user: req.user });
     } catch (error) {
-        console.error("Error fetching blog:", error);
+        console.error("View Blog Error:", error);
         res.status(500).send("Internal Server Error");
     }
 });
 
-// Delete Blog (Owner Only)
+// Delete Blog (Only Owner)
 router.delete("/:id", async (req, res) => {
     try {
         const blog = await Blog.findById(req.params.id);
+        if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
 
-        if (!blog) {
-            return res.status(404).json({ success: false, message: "Blog not found" });
-        }
-
-        if (!req.user || blog.createdBy.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ success: false, message: "You are not authorized to delete this blog" });
+        if (!req.user || String(blog.createdBy) !== String(req.user._id)) {
+            return res.status(403).json({ success: false, message: "Not authorized to delete this blog" });
         }
 
         await Blog.findByIdAndDelete(req.params.id);
