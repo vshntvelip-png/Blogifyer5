@@ -4,7 +4,10 @@ const { createHmac, randomBytes } = require("crypto");
 const { creatTokenForUser } = require("../services/authentication");
 
 const UserSchema = new Schema({
-    fullName: { type: String, required: true },
+    fullName: { 
+        type: String, 
+        required: true 
+    },
     email: { 
         type: String, 
         required: true, 
@@ -14,8 +17,15 @@ const UserSchema = new Schema({
     },
     salt: { type: String },
     password: { type: String },
-    googleId: { type: String, unique: true, sparse: true },
-    profileImageURL: { type: String, default: "/imgs/default.png" },
+    googleId: { 
+        type: String, 
+        unique: true, 
+        sparse: true 
+    },
+    profileImageURL: { 
+        type: String, 
+        default: "/imgs/default.png" 
+    },
     role: { 
         type: String, 
         enum: ["USER", "ADMIN"], 
@@ -23,7 +33,8 @@ const UserSchema = new Schema({
     },
 }, { timestamps: true });
 
-// ✅ CRITICAL FIX: Must be regular function, NOT arrow function
+// ====================== PASSWORD HASHING ======================
+// Must use regular function (not arrow function)
 UserSchema.pre("save", function (next) {
     if (this.googleId || !this.password || !this.isModified("password")) {
         return next();
@@ -37,12 +48,12 @@ UserSchema.pre("save", function (next) {
             .digest("hex");
         next();
     } catch (error) {
-        console.error("Password Hashing Error:", error);
+        console.error("❌ Password Hashing Error:", error);
         next(error);
     }
 });
 
-// Match Password Method
+// ====================== STATIC METHODS ======================
 UserSchema.static("matchPassword", async function (email, password) {
     const user = await this.findOne({ email: email.toLowerCase() });
     if (!user) throw new Error("User not found");
@@ -57,24 +68,32 @@ UserSchema.static("matchPassword", async function (email, password) {
     return creatTokenForUser(user);
 });
 
-// Google User Handler
+// ====================== GOOGLE ACCOUNT HANDLING ======================
 UserSchema.static("findOrCreateGoogleUser", async function (profile) {
     try {
         const email = profile.emails[0].value.toLowerCase();
         const googleId = profile.id;
 
+        console.log(`🔍 Google Login Attempt: ${email}`);
+
+        // Check if already linked with Google
         let user = await this.findOne({ googleId });
 
         if (!user) {
+            // Check if email already exists (from normal signup)
             user = await this.findOne({ email });
 
             if (user) {
+                // === LINK GOOGLE TO EXISTING ACCOUNT ===
+                console.log(`🔗 Linking Google to existing user (keeping original name): ${email}`);
                 user.googleId = googleId;
                 if (profile.photos?.[0]?.value) {
                     user.profileImageURL = profile.photos[0].value;
                 }
                 await user.save();
             } else {
+                // Create new user
+                console.log(`🆕 Creating new Google user: ${email}`);
                 user = await this.create({
                     fullName: profile.displayName || "Google User",
                     email: email,
@@ -86,7 +105,7 @@ UserSchema.static("findOrCreateGoogleUser", async function (profile) {
 
         return user;
     } catch (error) {
-        console.error("findOrCreateGoogleUser Error:", error.message);
+        console.error("❌ findOrCreateGoogleUser Error:", error.message);
         throw error;
     }
 });
