@@ -4,10 +4,7 @@ const { createHmac, randomBytes } = require("crypto");
 const { creatTokenForUser } = require("../services/authentication");
 
 const UserSchema = new Schema({
-    fullName: { 
-        type: String, 
-        required: true 
-    },
+    fullName: { type: String, required: true },
     email: { 
         type: String, 
         required: true, 
@@ -17,15 +14,8 @@ const UserSchema = new Schema({
     },
     salt: { type: String },
     password: { type: String },
-    googleId: { 
-        type: String, 
-        unique: true, 
-        sparse: true 
-    },
-    profileImageURL: { 
-        type: String, 
-        default: "/imgs/default.png" 
-    },
+    googleId: { type: String, unique: true, sparse: true },
+    profileImageURL: { type: String, default: "/imgs/default.png" },
     role: { 
         type: String, 
         enum: ["USER", "ADMIN"], 
@@ -33,9 +23,9 @@ const UserSchema = new Schema({
     },
 }, { timestamps: true });
 
-// ====================== PASSWORD HASHING ======================
-// Must use regular function (not arrow function)
-UserSchema.pre("save", function (next) {
+// ====================== PASSWORD HASHING (MUST BE REGULAR FUNCTION) ======================
+UserSchema.pre("save", function(next) {
+    // Skip hashing for Google users or if password is not changed
     if (this.googleId || !this.password || !this.isModified("password")) {
         return next();
     }
@@ -68,7 +58,6 @@ UserSchema.static("matchPassword", async function (email, password) {
     return creatTokenForUser(user);
 });
 
-// ====================== GOOGLE ACCOUNT HANDLING ======================
 UserSchema.static("findOrCreateGoogleUser", async function (profile) {
     try {
         const email = profile.emails[0].value.toLowerCase();
@@ -76,16 +65,14 @@ UserSchema.static("findOrCreateGoogleUser", async function (profile) {
 
         console.log(`🔍 Google Login Attempt: ${email}`);
 
-        // Check if already linked with Google
         let user = await this.findOne({ googleId });
 
         if (!user) {
-            // Check if email already exists (from normal signup)
             user = await this.findOne({ email });
 
             if (user) {
-                // === LINK GOOGLE TO EXISTING ACCOUNT ===
-                console.log(`🔗 Linking Google to existing user (keeping original name): ${email}`);
+                // Link Google but KEEP existing fullName
+                console.log(`🔗 Linking Google to existing user: ${email}`);
                 user.googleId = googleId;
                 if (profile.photos?.[0]?.value) {
                     user.profileImageURL = profile.photos[0].value;
