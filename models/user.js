@@ -23,9 +23,9 @@ const UserSchema = new Schema({
     },
 }, { timestamps: true });
 
-// ✅ FIXED: Pre-save middleware (No async with next())
+// ✅ FIXED: Proper regular function for pre-save middleware
 UserSchema.pre("save", function (next) {
-    // Skip if Google user or password not modified
+    // Skip hashing for Google users or if password is not modified
     if (this.googleId || !this.password || !this.isModified("password")) {
         return next();
     }
@@ -70,6 +70,7 @@ UserSchema.static("findOrCreateGoogleUser", async function (profile) {
             user = await this.findOne({ email });
 
             if (user) {
+                // Link Google to existing account
                 user.googleId = googleId;
                 if (profile.photos?.[0]?.value) {
                     user.profileImageURL = profile.photos[0].value;
