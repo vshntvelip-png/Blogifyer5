@@ -50,7 +50,7 @@ router.get("/:id", async (req, res) => {
 
         if (!blog) return res.status(404).send("Blog not found");
 
-        res.render("blog", { user: req.user, blog });
+        res.render("view", { user: req.user, blog });
     } catch (error) {
         console.error(error);
         res.status(500).send("Internal Server Error");
