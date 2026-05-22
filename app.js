@@ -53,7 +53,7 @@ app.get("/", async (req, res) => {
             blogs: allBlogs || [] 
         });
     } catch (error) {
-        console.error("🚨 Home Route Error:", error);
+        console.error("Home Route Error:", error);
         res.status(500).send("Internal Server Error");
     }
 });
