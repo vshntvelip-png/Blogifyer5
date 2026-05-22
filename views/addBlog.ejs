@@ -2,43 +2,36 @@
 <html lang="en">
 <head>
     <%- include("./partials/head") %>
-    <title>Add New Blog</title>
+    <title>Add New Blog | Blogify</title>
 </head>
 <body>
     <%- include("./partials/nave") %>
 
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card p-4 shadow-sm">
-                    <h2 class="mb-4 text-center">Create a New Blog Post</h2>
-                    
-                    <!-- enctype is essential for file uploads like cover images -->
-                    <form action="/blogs" method="POST" enctype="multipart/form-data">
-                        
-                        <div class="mb-3">
-                            <label class="form-label font-weight-bold">Cover Image</label>
-                            <input type="file" name="coverImage" class="form-control" accept="image/*">
-                        </div>
+    <div class="container mt-5" style="max-width: 700px;">
+        <h2 class="mb-4">✍️ Write New Blog</h2>
 
-                        <div class="mb-3">
-                            <label class="form-label font-weight-bold">Blog Title</label>
-                            <input type="text" name="title" class="form-control" placeholder="Enter a catchy title..." required>
-                        </div>
+        <% if (locals.error) { %>
+            <div class="alert alert-danger"><%= locals.error %></div>
+        <% } %>
 
-                        <div class="mb-3">
-                            <label class="form-label font-weight-bold">Content</label>
-                            <textarea name="body" class="form-control" rows="8" placeholder="Write your blog content here..." required></textarea>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">Publish Blog</button>
-                        </div>
-                        
-                    </form>
-                </div>
+        <form action="/blogs/add-new" method="POST">
+            <div class="mb-3">
+                <label class="form-label">Blog Title</label>
+                <input type="text" name="title" class="form-control" required>
             </div>
-        </div>
+
+            <div class="mb-3">
+                <label class="form-label">Cover Image URL (Optional)</label>
+                <input type="text" name="coverImageURL" class="form-control" placeholder="https://...">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Blog Content</label>
+                <textarea name="body" rows="12" class="form-control" required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg">Publish Blog</button>
+        </form>
     </div>
 
     <%- include("./partials/scripts") %>
