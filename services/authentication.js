@@ -1,25 +1,26 @@
-const JWT = require("jsonwebtoken");
-const secret = process.env.JWT_SECRET || "SuperMan@123";
+const jwt = require("jsonwebtoken");
 
-function creatTokenForUser(user) {
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret_key_change_in_production";
+
+// Create Token
+const creatTokenForUser = (user) => {
     const payload = {
         _id: user._id,
-        fullName: user.fullName,
         email: user.email,
+        fullName: user.fullName,
         profileImageURL: user.profileImageURL,
         role: user.role,
+        googleId: user.googleId
     };
-    const token = JWT.sign(payload, secret);
-    return token;
-}
+    return jwt.sign(payload, JWT_SECRET, { expiresIn: "7d" });
+};
 
-function validateToken(token) {
-    try {
-        const payload = JWT.verify(token, secret);
-        return payload;
-    } catch (error) {
-        return null;
-    }
-}
+// Verify Token
+const verifyToken = (token) => {
+    return jwt.verify(token, JWT_SECRET);
+};
 
-module.exports = { creatTokenForUser, validateToken };
+module.exports = { 
+    creatTokenForUser, 
+    verifyToken 
+};
