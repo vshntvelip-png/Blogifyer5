@@ -8,7 +8,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "vercel-install": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "cloudinary": "^2.5.1",
