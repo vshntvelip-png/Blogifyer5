@@ -1,4 +1,23 @@
-const { checkForAuthenticationCookie } = require("./checkAuth"); // Adjust if your file structure is different
+// middlewares/authentication.js
+const { verifyToken } = require("../services/authentication");
+
+const checkForAuthenticationCookie = (cookieName) => {
+    return async (req, res, next) => {
+        const token = req.cookies[cookieName];
+        if (!token) {
+            req.user = null;
+            return next();
+        }
+
+        try {
+            const user = verifyToken(token);
+            req.user = user;
+        } catch (error) {
+            req.user = null;
+        }
+        next();
+    };
+};
 
 // Restrict to Logged-in Users Only
 const restrictToLoggedInUserOnly = (req, res, next) => {
@@ -8,7 +27,7 @@ const restrictToLoggedInUserOnly = (req, res, next) => {
     next();
 };
 
-// Restrict to Specific Roles (Admin)
+// Restrict to Admin Only
 const restrictTo = (roles = []) => {
     return (req, res, next) => {
         if (!req.user) {
