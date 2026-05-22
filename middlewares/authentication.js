@@ -2,7 +2,7 @@
 const { verifyToken } = require("../services/authentication");
 
 const checkForAuthenticationCookie = (cookieName) => {
-    return async (req, res, next) => {
+    return (req, res, next) => {
         const token = req.cookies[cookieName];
         if (!token) {
             req.user = null;
