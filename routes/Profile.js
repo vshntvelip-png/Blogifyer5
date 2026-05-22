@@ -4,10 +4,10 @@ const Blog = require("../models/Blog");
 
 const { restrictToLoggedInUserOnly } = require("../middlewares/authentication");
 
-// Protect all profile routes - user must be logged in
+// Protect route
 router.use(restrictToLoggedInUserOnly);
 
-// GET /user/profile
+// GET User Profile
 router.get("/", async (req, res) => {
     try {
         const userBlogs = await Blog.find({ createdBy: req.user._id })
