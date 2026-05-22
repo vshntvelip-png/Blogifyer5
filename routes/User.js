@@ -22,8 +22,15 @@ if (clientID && clientSecret && callbackURL) {
                 callbackURL,
             },
             async (accessToken, refreshToken, profile, done) => {
+                console.log("🔍 Google Profile:", {
+                    id: profile.id,
+                    name: profile.displayName,
+                    email: profile.emails?.[0]?.value
+                });
+
                 try {
                     const user = await User.findOrCreateGoogleUser(profile);
+                    console.log("✅ Google User Ready:", user.email);
                     return done(null, user);
                 } catch (err) {
                     console.error("❌ Google Strategy Error:", err);
@@ -34,7 +41,7 @@ if (clientID && clientSecret && callbackURL) {
     );
     console.log("✅ Google OAuth Strategy Registered Successfully");
 } else {
-    console.warn("⚠️ Google OAuth credentials missing - Google login disabled");
+    console.warn("⚠️ Google OAuth credentials missing!");
 }
 
 // ====================== PASSPORT SERIALIZE / DESERIALIZE ======================
@@ -83,11 +90,9 @@ router.get("/logout", (req, res) => {
 
 // ====================== GOOGLE OAUTH ROUTES ======================
 router.get("/auth/google", (req, res, next) => {
-    console.log("🔍 Google Auth Initiated");
-
     if (!clientID || !clientSecret || !callbackURL) {
         return res.render("signin", { 
-            error: "Google login is currently unavailable. Please use email/password." 
+            error: "Google login is currently unavailable." 
         });
     }
 
@@ -100,19 +105,28 @@ router.get("/auth/google/callback",
     passport.authenticate("google", { 
         failureRedirect: "/user/signin",
         failureMessage: true,
-        session: false          // ← THIS IS THE FIX
+        session: false
     }),
     (req, res) => {
-        if (!req.user) {
-            return res.redirect("/user/signin");
-        }
+        try {
+            if (!req.user) {
+                return res.redirect("/user/signin");
+            }
 
-        const token = creatTokenForUser(req.user);
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict"
-        }).redirect("/");
+            const token = creatTokenForUser(req.user);
+
+            res.cookie("token", token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "strict",
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
+            res.redirect("/");
+        } catch (err) {
+            console.error("❌ Google Callback Error:", err);
+            res.redirect("/user/signin");
+        }
     }
 );
 
