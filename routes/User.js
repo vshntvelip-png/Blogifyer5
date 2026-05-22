@@ -52,9 +52,10 @@ router.post("/signup", async (req, res) => {
         if (existing) {
             return res.render("signup", { error: "Email already registered" });
         }
-        await User.create({ fullName, email, password });
+        await User.create({ fullName, email: email.toLowerCase(), password });
         res.redirect("/user/signin");
     } catch (error) {
+        console.error(error);
         res.render("signup", { error: "Something went wrong" });
     }
 });
@@ -62,13 +63,18 @@ router.post("/signup", async (req, res) => {
 router.post("/signin", async (req, res) => {
     try {
         const token = await User.matchPassword(req.body.email, req.body.password);
-        res.cookie("token", token, { httpOnly: true, sameSite: "lax" }).redirect("/");
+        res.cookie("token", token, { 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000 
+        }).redirect("/");
     } catch (e) {
         res.render("signin", { error: "Invalid credentials" });
     }
 });
 
-// ====================== LOGOUT ROUTE (FIXED) ======================
+// ====================== LOGOUT ======================
 router.get("/logout", (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
@@ -93,7 +99,7 @@ router.get("/auth/google/callback",
 
         res.cookie("token", token, {
             httpOnly: true,
-            secure: true,
+            secure: process.env.NODE_ENV === "production",
             sameSite: "lax",
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
