@@ -14,9 +14,10 @@ const UserSchema = new Schema({
 }, { timestamps: true });
 
 // ====================== PASSWORD HASHING ======================
-UserSchema.pre("save", function (next) {          // ← NO "async" here
+UserSchema.pre("save", function (next) {
     if (!this.password || !this.isModified("password") || this.googleId) {
-        return next();
+        next();
+        return;
     }
 
     try {
