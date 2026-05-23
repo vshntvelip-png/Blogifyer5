@@ -5,7 +5,12 @@ const { sendOTPEmail } = require('../services/email');
 
 const otpStore = new Map();
 
-// ====================== SIGNIN ======================
+// ====================== GET SIGNIN PAGE ======================
+router.get('/signin', (req, res) => {
+    res.render('signin');   // Make sure you have a signin.ejs file in views/
+});
+
+// ====================== POST SIGNIN ======================
 router.post('/signin', async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -44,7 +49,7 @@ router.get('/signup', (req, res) => {
 router.post('/send-otp', async (req, res) => {
     const { email } = req.body;
 
-    console.log("📧 [Send OTP] Request received for:", email);
+    console.log("📧 [Send OTP] Request for:", email);
 
     if (!email) {
         return res.status(400).json({ success: false, message: 'Email is required' });
@@ -53,7 +58,6 @@ router.post('/send-otp', async (req, res) => {
     try {
         const normalizedEmail = email.toLowerCase().trim();
 
-        // Check if user already exists
         const existingUser = await User.findOne({ email: normalizedEmail });
         if (existingUser) {
             return res.status(409).json({
@@ -71,7 +75,7 @@ router.post('/send-otp', async (req, res) => {
 
         res.json({ success: true, message: 'OTP sent successfully' });
     } catch (error) {
-        console.error("🚨 [Send OTP] Full Error:", error);
+        console.error("🚨 Send OTP Error:", error);
         res.status(500).json({ 
             success: false, 
             message: 'Failed to send OTP. Please check server console.' 
