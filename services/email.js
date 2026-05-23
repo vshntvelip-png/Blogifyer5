@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer');
-require('dotenv').config();
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -9,15 +8,13 @@ const transporter = nodemailer.createTransport({
     },
     tls: {
         rejectUnauthorized: false
-    },
-    debug: true,        // Extra logging
-    logger: true        // Show detailed logs
+    }
 });
 
-// Test connection
+// Verify transporter on startup
 transporter.verify((error) => {
     if (error) {
-        console.error("❌ GMAIL TRANSPORTER ERROR:", error.message);
+        console.error("❌ Gmail Transporter Error:", error.message);
     } else {
         console.log("✅ Gmail Transporter Ready");
     }
@@ -29,21 +26,22 @@ const sendOTPEmail = async (email, otp) => {
         to: email,
         subject: 'Your Signup OTP - Blogify',
         html: `
-            <h2>Your Verification Code</h2>
-            <h1 style="font-size:50px">${otp}</h1>
-            <p>Expires in 5 minutes.</p>
+            <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+                <h2 style="color: #667eea; text-align: center;">Your Verification Code</h2>
+                <h1 style="font-size: 50px; text-align: center; letter-spacing: 12px; color: #333;">${otp}</h1>
+                <p style="text-align: center; color: #666;">This code will expire in 5 minutes.</p>
+                <p style="text-align: center; color: #999; font-size: 14px;">If you didn't request this, please ignore this email.</p>
+            </div>
         `
     };
 
     try {
         const info = await transporter.sendMail(mailOptions);
-        console.log(`✅ OTP SENT to ${email}`);
+        console.log(`✅ OTP Sent Successfully to ${email}`);
         return true;
     } catch (error) {
-        console.error("❌ GMAIL SEND FAILED");
-        console.error("Code:", error.code);
-        console.error("Message:", error.message);
-        if (error.response) console.error("Response:", error.response);
+        console.error("❌ Failed to send email:");
+        console.error(error.message);
         throw error;
     }
 };
