@@ -41,6 +41,22 @@
         .divider span {
             padding: 0 15px;
         }
+
+        /* OTP Styling */
+        .otp-box {
+            width: 45px;
+            height: 52px;
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: bold;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+        }
+        .otp-box:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+        }
     </style>
 </head>
 <body>
@@ -50,18 +66,18 @@
         <div class="card p-4" style="width: 100%; max-width: 480px;">
             <h3 class="text-center mb-4">Create Your Account</h3>
 
-            <!-- Google Signup -->
+            <!-- Google Signup Button -->
             <a href="/user/auth/google" class="google-btn w-100 mb-3">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" 
                      width="22" height="22" alt="Google">
-                Continue with Google
+                Sign up with Google
             </a>
 
             <div class="divider">
                 <span>OR</span>
             </div>
 
-            <!-- Email + OTP Signup Form -->
+            <!-- Email + OTP Form -->
             <form id="signupForm">
                 <div class="mb-3">
                     <label class="form-label">Full Name</label>
@@ -79,17 +95,17 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="form-label">Verification Code</label>
+                    <label class="form-label">Verification Code (OTP)</label>
                     <div class="otp-section d-flex align-items-end gap-2">
                         <div class="otp-container d-flex gap-2 flex-grow-1" id="otpContainer">
-                            <input type="text" class="otp-box form-control text-center" maxlength="1" data-index="0" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-                            <input type="text" class="otp-box form-control text-center" maxlength="1" data-index="1" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-                            <input type="text" class="otp-box form-control text-center" maxlength="1" data-index="2" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-                            <input type="text" class="otp-box form-control text-center" maxlength="1" data-index="3" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-                            <input type="text" class="otp-box form-control text-center" maxlength="1" data-index="4" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
-                            <input type="text" class="otp-box form-control text-center" maxlength="1" data-index="5" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                            <input type="password" class="otp-box form-control text-center" maxlength="1" data-index="0" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                            <input type="password" class="otp-box form-control text-center" maxlength="1" data-index="1" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                            <input type="password" class="otp-box form-control text-center" maxlength="1" data-index="2" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                            <input type="password" class="otp-box form-control text-center" maxlength="1" data-index="3" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                            <input type="password" class="otp-box form-control text-center" maxlength="1" data-index="4" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                            <input type="password" class="otp-box form-control text-center" maxlength="1" data-index="5" oninput="moveToNext(this)" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
                         </div>
-                        <button type="button" class="btn btn-primary send-otp-btn" id="sendOtpBtn" style="height: 52px; white-space: nowrap;">Send OTP</button>
+                        <button type="button" class="btn btn-primary send-otp-btn" id="sendOtpBtn" style="height: 52px;">Send OTP</button>
                     </div>
                     <input type="hidden" name="otp" id="hiddenOtp">
                 </div>
@@ -151,7 +167,7 @@
             }
         });
 
-        // Signup Form
+        // Signup Form Submit
         document.getElementById('signupForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
