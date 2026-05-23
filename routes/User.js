@@ -87,7 +87,7 @@ router.post('/send-otp', async (req, res) => {
 
 // ====================== SIGNUP ======================
 router.post('/signup', async (req, res) => {
-    const { FullName, email, password, otp } = req.body;
+    const { fullName, email, password, otp } = req.body;
 
     if (!FullName || !email || !password || !otp) {
         return res.status(400).json({ success: false, message: "All fields are required" });
